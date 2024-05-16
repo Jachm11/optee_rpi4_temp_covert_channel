@@ -10,8 +10,9 @@
 /* For the UUID (found in the TA's h-file(s)) */
 #include "../ta/temp_ch_ta.h"
 
-#define verbose 0
+#define VERBOSE 0
 #define FREQUENCY 1500000
+#define MAX_BUF 256
 
 int is_power_2(int x) {
     // A number is a power of 2 if it has only one bit set in its binary representation.
@@ -53,7 +54,7 @@ char* hamming_encode(char* bits, int block_size){
     int final_length = blocks * block_size;
     int unused = final_length - (len+(parity_bits+1)*blocks);
 
-#if verbose
+#if VERBOSE
     printf("Length:        %d\n",len);
     printf("Parity bits:   %d\n",parity_bits);
     printf("Data bits:     %d\n",block_size-(parity_bits+1));
@@ -76,9 +77,8 @@ char* hamming_encode(char* bits, int block_size){
     for (int block = 0; block < blocks; block++) {
         int parities[parity_bits+1];
         memset(parities, 0, sizeof(parities));
-
+		// Copy data, count parities, ignore power of 2 (parity) positions 
         for (int i = 3; i < block_size; i++) {
-
             if (is_power_2(i)){
             }
             else if (data_i < len){
@@ -98,7 +98,7 @@ char* hamming_encode(char* bits, int block_size){
                 hamming_data[block*block_size + i] = '0';
             }   
         }
-
+		// Set parity bits
         for(int i = 0; i < parity_bits; i++){
             int parity_index = (int)pow(2, i);
 
@@ -108,9 +108,9 @@ char* hamming_encode(char* bits, int block_size){
                 parities[0]++;
             }
         }
+		// Set extended parity
         hamming_data[block*block_size] = (parities[0] % 2 == 0) ? '0' : '1';
     }
-    
     return hamming_data;
 }
 
@@ -131,6 +131,53 @@ void set_cpu_frequency(unsigned int freq_khz) {
 
     // Close the files
     fclose(setspeed_fp);
+}
+
+
+void log_temp(){
+
+    FILE *fp, *log_fp; // File pointers for temperature file and log file
+    char buf[MAX_BUF];
+
+    // Path to the file containing CPU temperature (specific to Linux systems)
+    const char *temp_file = "/sys/class/thermal/thermal_zone0/temp";
+    const char *log_file = "temp_log"; // Log file path
+
+    while (1) {
+        // Open temperature file
+        fp = fopen(temp_file, "r");
+        if (fp == NULL) {
+            printf("Error opening temperature file\n");
+            exit(1);
+        }
+
+        // Read temperature value
+        fgets(buf, MAX_BUF, fp);
+        fclose(fp);
+
+        // Convert string to integer (temperature is usually in millidegrees Celsius)
+        int temp = atoi(buf) / 1000;
+
+        printf("CPU Temperature: %d°C\n", temp);
+#if VERBOSE
+        printf("CPU Temperature: %d°C\n", temp);
+#endif
+
+        // Open log file in append mode
+        log_fp = fopen(log_file, "a");
+        if (log_fp == NULL) {
+            printf("Error opening log file\n");
+            exit(1);
+        }
+
+        // Write temperature to log file
+        fprintf(log_fp, "%d\n", temp);
+        fclose(log_fp);
+
+        // Wait for one milisecond
+        usleep(100000);
+    }
+
 }
 
 int main(int argc, char *argv[])
@@ -158,7 +205,7 @@ int main(int argc, char *argv[])
 
 	/* Set RPI4 freq to max */
 	set_cpu_frequency(FREQUENCY);
-#if verbose 
+#if VERBOSE 
 	printf("CPU freq set to %d\n",FREQUENCY);
 #endif
 
@@ -236,11 +283,9 @@ int main(int argc, char *argv[])
 	/* Call the temperature monitoring function*/
 	pid_t pid = fork();
 
-	if (pid == -1) {
-        // Error handling
-    } else if (pid == 0) {
+	if (pid == 0) {
         // Child process
-        system("./temp_logger");
+        log_temp();
 		return 0;
     }
 
@@ -257,14 +302,15 @@ int main(int argc, char *argv[])
 	 * The TA will print "Goodbye!" in the log when the session is closed.
 	 */
 
+	/* Stop recording temps */
+	kill(pid, SIGINT);
+
 	/* Always free memory */
     TEEC_ReleaseSharedMemory(&shared_mem);
 
 	TEEC_CloseSession(&sess);
 
 	TEEC_FinalizeContext(&ctx);
-
-	printf("hi\n");
 
 	return 0;
 }

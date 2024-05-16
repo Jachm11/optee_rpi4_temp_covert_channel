@@ -68,14 +68,14 @@ void TA_CloseSessionEntryPoint(void __maybe_unused *sess_ctx) {
 //____/ Utility functions
 
 // Function to execute the workload
-long long runWorkload(int n){
+long long run_workload(int n){
 
 	int A[SIZE][SIZE], B[SIZE][SIZE];
 	// Initialize matrices A and B
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
             A[i][j] = 69;  // Random numbers between 0 and 99
-            B[i][j] = 100;  // Random numbers between 0 and 99
+            B[i][j] = 99;  // Random numbers between 0 and 99
         }
     }
 
@@ -84,24 +84,29 @@ long long runWorkload(int n){
     if (n == 0 || n == 1)
         return 1;
     else
-        return n * runWorkload(n - 1) + c;
+        return n * run_workload(n - 1) + c;
 }
 
 // Function to parse the string and execute workload accordingly
-void executeWorkload(char *str) {
+void execute_workload(char *str, int bit_time) {
     int len = strlen(str);
     for (int i = 0; i < len; i++) {
         if (str[i] == '1') {
-			//TEE_Time *time;
-			//TEE_GetSystemTime(time);
-			//printf(time);
-            printf("Executing workload for 5 seconds...\n");
-			for (int j = 0; j < 2020; j++){
-            	runWorkload(100000);
+			TEE_Time start_time;
+			TEE_Time current_time;
+			TEE_GetREETime(&start_time);
+			int ready = 0;
+            printf("Executing workload for %d miliseconds...\n",bit_time);
+			while (!ready){
+            	run_workload(100000);
+				TEE_GetREETime(&current_time);
+				if (current_time.seconds - start_time.seconds >= (bit_time/1000)){
+					ready = 1;
+				}
 			}
         } else if (str[i] == '0') {
-            printf("Sleeping for 5 seconds...\n");
-            TEE_Wait(5000);
+            printf("Sleeping for %d miliseconds...\n",bit_time);
+            TEE_Wait(bit_time);
         } else {
             printf("Invalid character in string: %c\n", str[i]);
         }
@@ -124,22 +129,13 @@ static TEE_Result send_with_temp(uint32_t param_types, TEE_Param params[4]) {
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-	int sleep_time = params[0].value.a;
-	IMSG("Sleep set to: %d", sleep_time);
+	int bit_time = params[0].value.a;
+	char* msg = params[1].memref.buffer;
+	IMSG("Sleep set to: %d", bit_time);
 
-	printf("Data from shared memory: %s\n", params[1].memref.buffer);
+	IMSG("Data from shared memory: %s", params[1].memref.buffer);
 
-	//strcpy(params[1].memref.buffer, "Goodbye, shared memory!");
-
-	TEE_Time tt;
-	TEE_GetREETime(&tt);
-
-	printf("time is %d\n",tt.seconds);
-
-
-
-	//char input[] = "0100110101110"; // Change this string as per your requirement
-    //executeWorkload(input);
+    execute_workload(msg,bit_time);
 
 	return TEE_SUCCESS;
 }
