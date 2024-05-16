@@ -4,8 +4,8 @@
 #include <tee_internal_api_extensions.h>
 #include "temp_ch_ta.h"
 
-//     __________________________
-//____/ OPTEE specific functions
+//      __________________________
+//____/ TEE specific functions
 
 /*
  * Called when the instance of the TA is created. This is the first call in
@@ -33,18 +33,19 @@ void TA_DestroyEntryPoint(void)
  * TA.
  */
 TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
-		TEE_Param __maybe_unused params[4],
-		void __maybe_unused **sess_ctx)
-{
+									TEE_Param __maybe_unused params[4],
+									void __maybe_unused **sess_ctx) {
+
 	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_NONE,
-						   TEE_PARAM_TYPE_NONE,
-						   TEE_PARAM_TYPE_NONE,
-						   TEE_PARAM_TYPE_NONE);
+						   					   TEE_PARAM_TYPE_NONE,
+						   					   TEE_PARAM_TYPE_NONE,
+						   					   TEE_PARAM_TYPE_NONE);
 
 	DMSG("has been called");
 
-	if (param_types != exp_param_types)
+	if (param_types != exp_param_types){
 		return TEE_ERROR_BAD_PARAMETERS;
+	}
 
 	/* Unused parameters */
 	(void)&params;
@@ -58,19 +59,18 @@ TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
  * Called when a session is closed, sess_ctx hold the value that was
  * assigned by TA_OpenSessionEntryPoint().
  */
-void TA_CloseSessionEntryPoint(void __maybe_unused *sess_ctx)
-{
+void TA_CloseSessionEntryPoint(void __maybe_unused *sess_ctx) {
 	(void)&sess_ctx; /* Unused parameter */
 	IMSG("Goodbye!\n");
 }
 
-//     __________________________
+//      __________________________
 //____/ Utility functions
 
 // Function to execute the workload
-long long runWorkload(int n) {
+long long runWorkload(int n){
 
-	int A[SIZE][SIZE], B[SIZE][SIZE], C[SIZE][SIZE];
+	int A[SIZE][SIZE], B[SIZE][SIZE];
 	// Initialize matrices A and B
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
@@ -78,8 +78,6 @@ long long runWorkload(int n) {
             B[i][j] = 100;  // Random numbers between 0 and 99
         }
     }
-
-	//multiply(A, B, C);
 
 	int c = A[3][4] + B[1][0];
 
@@ -110,15 +108,15 @@ void executeWorkload(char *str) {
     }
 }
 
-//     __________________________
+//      __________________________
 //____/ Specific cmd functions
 
-static TEE_Result send_with_temp(uint32_t param_types, TEE_Param params[4]){
+static TEE_Result send_with_temp(uint32_t param_types, TEE_Param params[4]) {
 
-	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_VALUE_INOUT,
-						   TEE_PARAM_TYPE_NONE,
-						   TEE_PARAM_TYPE_MEMREF_INOUT,
-						   TEE_PARAM_TYPE_NONE);
+	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_VALUE_INPUT,
+						   					   TEE_PARAM_TYPE_MEMREF_INOUT,
+											   TEE_PARAM_TYPE_NONE,
+						   					   TEE_PARAM_TYPE_NONE);
 
 	DMSG("has been called");
 
@@ -126,13 +124,18 @@ static TEE_Result send_with_temp(uint32_t param_types, TEE_Param params[4]){
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-	IMSG("Got value: %u from NW", params[0].value.a);
-	params[0].value.a++;
-	IMSG("Increase value to: %u", params[0].value.a);
+	int sleep_time = params[0].value.a;
+	IMSG("Sleep set to: %d", sleep_time);
 
-	printf("Data from shared memory: %s\n", params[2].memref.buffer);
+	printf("Data from shared memory: %s\n", params[1].memref.buffer);
 
-	strcpy(params[2].memref.buffer, "Goodbye, shared memory!");
+	//strcpy(params[1].memref.buffer, "Goodbye, shared memory!");
+
+	TEE_Time tt;
+	TEE_GetREETime(&tt);
+
+	printf("time is %d\n",tt.seconds);
+
 
 
 	//char input[] = "0100110101110"; // Change this string as per your requirement
@@ -141,15 +144,17 @@ static TEE_Result send_with_temp(uint32_t param_types, TEE_Param params[4]){
 	return TEE_SUCCESS;
 }
 
+//      __________________________
+//____/ General entry point
+
 /*
  * Called when a TA is invoked. sess_ctx hold that value that was
  * assigned by TA_OpenSessionEntryPoint(). The rest of the paramters
  * comes from normal world.
  */
-TEE_Result TA_InvokeCommandEntryPoint(void __maybe_unused *sess_ctx,
-			uint32_t cmd_id,
-			uint32_t param_types, TEE_Param params[4])
-{
+TEE_Result TA_InvokeCommandEntryPoint(void __maybe_unused *sess_ctx, uint32_t cmd_id,
+									  uint32_t param_types, TEE_Param params[4]) {
+
 	(void)&sess_ctx; /* Unused parameter */
 
 	switch (cmd_id) {

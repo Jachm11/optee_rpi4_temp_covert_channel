@@ -12,7 +12,7 @@ TA_TARGET   = $(BUILD_DIR)/ta
 
 # Compiler flags
 CXXFLAGS = -I$(OPTEECLIENT_DIR)/libteec/include
-LDFLAGS  = -L$(OPTEECLIENT_DIR)/libteec -lteec
+LDFLAGS  = -L$(OPTEECLIENT_DIR)/libteec -lteec -lm
 
 # TA log level
 CFG_TEE_TA_LOG_LEVEL ?= 4
