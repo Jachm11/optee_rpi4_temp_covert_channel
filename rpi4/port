@@ -1,8 +1,0 @@
-#!/bin/sh
-
-RPI=root@10.42.0.65
-TA=8aaaf200-2450-11e4-abe2-0002a5d5c51e.ta
-
-sshpass -p '1234' scp build/rpi4/host ${RPI}:/test/
-sshpass -p '1234' scp build/rpi4/ta/${TA} ${RPI}:/lib/optee_armtz/
-echo all files ported to the RPI4

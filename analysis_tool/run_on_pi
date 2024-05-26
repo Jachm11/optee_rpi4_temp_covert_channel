@@ -1,0 +1,5 @@
+#!/bin/sh
+
+RPI=root@10.42.0.65
+
+sshpass -p '1234' ssh ${RPI} 'cd /test ; chmod +x run_covert_channel ;./run_covert_channel buenas'
