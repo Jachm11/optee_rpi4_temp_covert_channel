@@ -13,6 +13,7 @@
 #define VERBOSE 0
 #define FREQUENCY 1500000
 #define MAX_BUF 256
+#define HAMMING_BLOCK_SIZE 16
 
 int is_power_2(int x) {
     // A number is a power of 2 if it has only one bit set in its binary representation.
@@ -157,8 +158,7 @@ void log_temp(){
 
         // Convert string to integer (temperature is usually in millidegrees Celsius)
         int temp = atoi(buf) / 1000;
-
-        printf("CPU Temperature: %d°C\n", temp);
+        
 #if VERBOSE
         printf("CPU Temperature: %d°C\n", temp);
 #endif
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
 
 	/* Create a shared memory block of 64 bytes */
 	TEEC_SharedMemory shared_mem;
-	shared_mem.size = 64;
+	shared_mem.size = 128;
 	shared_mem.flags = TEEC_MEM_INPUT;
 	
 	res = TEEC_AllocateSharedMemory(&ctx,&shared_mem);
@@ -260,10 +260,10 @@ int main(int argc, char *argv[])
 
 	if (shared_mem.buffer != NULL) {
 
-		char* msg = string_to_binary("hola");
+		char* msg = string_to_binary("Nalion");
 
 		if(hamming){
-			msg = hamming_encode(msg, 16);
+			msg = hamming_encode(msg, HAMMING_BLOCK_SIZE);
 		}
 
     	strcpy(shared_mem.buffer, msg);
@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
 	}
 
 	op.params[1].memref.parent = shared_mem.buffer;
-	op.params[1].memref.size   = 1024;
+	op.params[1].memref.size   = 128;
 	op.params[1].memref.offset = 0;
 
 	//     _______________________

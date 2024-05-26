@@ -40,3 +40,8 @@ def binary_to_string(binary: str) -> str:
         result += chr(int(byte, 2))  # Convert the binary string to an integer, then to a character
 
     return result
+
+def print_with_pipe(text):
+    for i in range(0, len(text), 16):
+        print(text[i:i+16], end='|')
+    print()

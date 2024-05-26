@@ -33,17 +33,17 @@ def extended_hamming(data: str) -> HammingDecode:
 
     # Convert list to string
     hamming.message = ''.join(message)
-    hamming.multiple_errors = (parity % 2 == int(data[0])) and (hamming.error != 0)
+    hamming.multiple_errors = not(parity % 2 == int(data[0])) and (hamming.error != 0)
     
     return hamming
 
 def correct_error(decode: HammingDecode) -> str:
     """Correct errors in a decoded Hamming message."""
     decode_message = decode.message
-    error_index = decode.error
+    error_index = map_index(decode.error)
 
     # If no error, return the original message
-    if error_index == 0:
+    if error_index == -1:
         return decode_message
 
     # Correct the error at the error_index
@@ -55,7 +55,43 @@ def correct_error(decode: HammingDecode) -> str:
 
     return corrected_message
 
-# block0 = "0010101110001110"
+def map_index(index:int)->int:
+
+    match index:
+        case 0:
+            return -1
+        case 1:
+            return -1
+        case 2:
+            return -1
+        case 3:
+            return 0
+        case 4:
+            return -1
+        case 5:
+            return 1
+        case 6:
+            return 2
+        case 7:
+            return 3
+        case 8:
+            return -1
+        case 9:
+            return 4
+        case 10:
+            return 5
+        case 11:
+            return 6
+        case 12:
+            return 7
+        case 13:
+            return 8
+        case 14:
+            return 9
+        case 15:
+            return 10
+
+# block0 = "1110100011011011"
 # res = extended_hamming(block0)
 # print("Message:         ",res.message)
 # print("Error in pos:    ",res.error)

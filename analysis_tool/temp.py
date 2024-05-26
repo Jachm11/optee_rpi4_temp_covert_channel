@@ -17,17 +17,28 @@ def decode_temp_msg(temps: List[float], temps_per_bit: int) -> str:
     """
     result = ''
     prev_avg: Optional[float] = None  # Store the average temperature of the previous group
+    prev_value = ''
 
     for i in range(0, len(temps), temps_per_bit):
         group = temps[i:i + temps_per_bit]  # Get the current group of temperatures
         avg_temp = sum(group) / len(group)  # Calculate the average temperature of the current group
+        value = ''
 
-        if prev_avg is not None and avg_temp >= prev_avg:
-            result += '1'
+        if prev_avg is None:
+            value = '0'
+        elif (prev_avg+0.4) >= avg_temp >= (prev_avg-0.4) :
+            value = prev_value
+        elif avg_temp > prev_avg:
+            value = '1'
         else:
-            result += '0'
+            value = '0'
+
+        #print(i/50,prev_avg,avg_temp)
+        result += value
+
 
         prev_avg = avg_temp  # Update the previous average temperature
+        prev_value = value
 
     return result
 
@@ -42,12 +53,13 @@ def extract_hamming_message(num_blocks: int, msg: str) -> Tuple[str, List[str], 
     Returns:
         Tuple[str, List[str], List[int]]: The full decoded message, blocks with errors, and indices of faulty blocks.
     """
-    block_size = len(msg) // num_blocks
+    block_size = 16
     blocks = [msg[i * block_size: (i + 1) * block_size] for i in range(num_blocks)]
 
     decoded_messages = []
     blocks_with_errors = []
     faulty_block_indices = []
+    corrected_msg = ""
 
     for index, block in enumerate(blocks):
         hamming_decode = extended_hamming(block)
@@ -57,6 +69,7 @@ def extract_hamming_message(num_blocks: int, msg: str) -> Tuple[str, List[str], 
         else:
             blocks_with_errors.append(block)
             faulty_block_indices.append(index)
+            decoded_messages.append(corrected_msg)
 
     full_message = ''.join(decoded_messages)
     return full_message, blocks_with_errors, faulty_block_indices
@@ -90,43 +103,11 @@ def plot_temperature_over_time(temperatures: List[float], interval: int, text: s
     plt.grid(True)
     plt.show()
 
-
-def main():
-
-    # Read temperatures from file
-    with open("temp_log", "r") as file:
-        temperatures = [int(line.strip()) for line in file]
-
-    hamming = True
-    is_string = True
-
-    temps_per_bit = 50
-    msg = decode_temp_msg(temperatures, temps_per_bit)
-    print(msg)
-
-    org = "011001101100001111100111110110111000000101000010"
-    print(org)
-    compare_strings(msg,org)
-
-    if (hamming):
-
-        num_blocks = 3
-        msg, errors, error_indices = extract_hamming_message(num_blocks, msg)
-
-    print(msg)
-    print("01101000011011110110110001100001")
-
-    if (is_string):
-
-        msg = binary_to_string(msg)
-
-    print(msg)
-
-    #plot_temperature_over_time(temperatures,50,decode_temp_msg(temperatures, temps_per_bit))
-
+def run_rpi4(milis:int, hamming:bool) -> None:
 
     # Define the command you want to run
-    command = "./analysis_tool/run_on_pi"
+    command = "./analysis_tool/run_on_pi " + str(milis) + " " + str(int(hamming))
+    print(command)
 
     # Run the command
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
@@ -135,6 +116,56 @@ def main():
     print("Command output:")
     print(result.stdout)
 
+# def get_temp_file() -> None:
+
+#     # Define the command you want to run
+#     command = "./analysis_tool/run_on_pi " + str(milis) + " " + str(int(hamming))
+#     print(command)
+
+#     # Run the command
+#     result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+#     # Print the output
+#     print("Command output:")
+#     print(result.stdout)
+
+def main():
+
+    run_rpi4(5000,True)
+
+    # get_temp_file()
+
+    # # Read temperatures from file
+    # with open("temp_log", "r") as file:
+    #     temperatures = [int(line.strip()) for line in file]
+
+    # hamming = True
+    # is_string = True
+
+    # temps_per_bit = 50
+    # msg = decode_temp_msg(temperatures, temps_per_bit)
+    # print_with_pipe(msg)
+
+    # org = "00001100111100111110100011011011111000011101001000110101111101101001011000000000"
+    # print_with_pipe(org)
+    # compare_strings(msg,org)
+
+    # if (hamming):
+
+    #     num_blocks = 3
+    #     msg, errors, error_indices = extract_hamming_message(num_blocks, msg)
+
+    # print(msg)
+    # print("010011100110000101101100011010010110111101101110")
+
+    # if (is_string):
+
+    #     msg = binary_to_string(msg)
+
+    # print(msg)
+
+
+    # plot_temperature_over_time(temperatures,50,decode_temp_msg(temperatures, temps_per_bit))
 
 
 if __name__ == '__main__':
