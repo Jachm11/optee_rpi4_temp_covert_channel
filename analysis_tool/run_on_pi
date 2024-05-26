@@ -11,4 +11,4 @@ fi
 milisecs="$1"
 hamming="$2"
 
-sshpass -p '1234' ssh ${RPI} "cd /test ; chmod +x run_covert_channel ;./run_covert_channel $milisecs $hamming"
+sshpass -p '1234' ssh  -t ${RPI} "cd /test ; chmod +x run_covert_channel ;./run_covert_channel $milisecs $hamming"

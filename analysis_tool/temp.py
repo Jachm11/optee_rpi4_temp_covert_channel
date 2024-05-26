@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from typing import List, Tuple
 import subprocess
+import math
 from hamming import *
 from utils import *
 
@@ -42,7 +43,7 @@ def decode_temp_msg(temps: List[float], temps_per_bit: int) -> str:
 
     return result
 
-def extract_hamming_message(num_blocks: int, msg: str) -> Tuple[str, List[str], List[int]]:
+def extract_hamming_message(msg: str, block_size: int) -> Tuple[str, List[str], List[int], int]:
     """
     Extract and decode a message from a binary string divided into blocks.
     
@@ -53,18 +54,21 @@ def extract_hamming_message(num_blocks: int, msg: str) -> Tuple[str, List[str], 
     Returns:
         Tuple[str, List[str], List[int]]: The full decoded message, blocks with errors, and indices of faulty blocks.
     """
-    block_size = 16
+
+    num_blocks = len(msg)//block_size
     blocks = [msg[i * block_size: (i + 1) * block_size] for i in range(num_blocks)]
 
     decoded_messages = []
     blocks_with_errors = []
     faulty_block_indices = []
     corrected_msg = ""
+    corrected_errors = 0
 
     for index, block in enumerate(blocks):
         hamming_decode = extended_hamming(block)
         if not hamming_decode.multiple_errors:
-            corrected_msg = correct_error(hamming_decode)
+            corrected_msg, error = correct_error(hamming_decode)
+            corrected_errors += error
             decoded_messages.append(corrected_msg)
         else:
             blocks_with_errors.append(block)
@@ -72,7 +76,7 @@ def extract_hamming_message(num_blocks: int, msg: str) -> Tuple[str, List[str], 
             decoded_messages.append(corrected_msg)
 
     full_message = ''.join(decoded_messages)
-    return full_message, blocks_with_errors, faulty_block_indices
+    return full_message, blocks_with_errors, faulty_block_indices, corrected_errors
 
 def plot_temperature_over_time(temperatures: List[float], interval: int, text: str) -> None:
     """
@@ -103,7 +107,7 @@ def plot_temperature_over_time(temperatures: List[float], interval: int, text: s
     plt.grid(True)
     plt.show()
 
-def run_rpi4(milis:int, hamming:bool) -> None:
+def run_rpi4(milis:int, hamming:bool) -> str:
 
     # Define the command you want to run
     command = "./analysis_tool/run_on_pi " + str(milis) + " " + str(int(hamming))
@@ -112,60 +116,83 @@ def run_rpi4(milis:int, hamming:bool) -> None:
     # Run the command
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
-    # Print the output
-    print("Command output:")
-    print(result.stdout)
+    return result.stdout
 
-# def get_temp_file() -> None:
 
-#     # Define the command you want to run
-#     command = "./analysis_tool/run_on_pi " + str(milis) + " " + str(int(hamming))
-#     print(command)
+def run_single_test(interval:int, hamming:bool, hamming_block_size:int):
 
-#     # Run the command
-#     result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
-#     # Print the output
-#     print("Command output:")
-#     print(result.stdout)
+    truth = "01101000011011110110110001100001"
+    blocks_with_errors = 0
+    corrected_errors = 0
+
+    # Execution
+    temps = run_rpi4(interval,hamming)
+
+    # Parse
+    string_temps = temps.split('\n')
+    temperatures = [int(temp) for temp in string_temps if temp.isdigit()]
+
+    # Decode temps
+    temps_per_bit = interval//100
+    msg = decode_temp_msg(temperatures, temps_per_bit)
+
+
+    # Decode hamming
+    if (hamming):
+        msg, _, error_indices, corrected_errors = extract_hamming_message(msg, hamming_block_size)
+        blocks_with_errors = len(error_indices)
+
+    # Comparison and metrics
+    compare_strings(msg,truth)
+
+
+    bit_rate = len(temps)/(interval*1000)
+
+
+
+
 
 def main():
 
-    run_rpi4(5000,True)
+    # Config
+    hamming = True
+    interval = 3000
+    is_string = True
 
-    # get_temp_file()
+    # Execution
+    temps = run_rpi4(interval,hamming)
 
-    # # Read temperatures from file
-    # with open("temp_log", "r") as file:
-    #     temperatures = [int(line.strip()) for line in file]
+    # Parse
+    string_temps = temps.split('\n')
+    temperatures = [int(temp) for temp in string_temps if temp.isdigit()]
 
-    # hamming = True
-    # is_string = True
+    # Decode
+    temps_per_bit = interval//100
+    msg = decode_temp_msg(temperatures, temps_per_bit)
+    print_with_pipe(msg)
 
-    # temps_per_bit = 50
-    # msg = decode_temp_msg(temperatures, temps_per_bit)
-    # print_with_pipe(msg)
+    org = "00001100111100111110100011011011111000011101001000110101111101101001011000000000"
+    print_with_pipe(org)
+    compare_strings(msg,org)
 
-    # org = "00001100111100111110100011011011111000011101001000110101111101101001011000000000"
-    # print_with_pipe(org)
-    # compare_strings(msg,org)
+    if (hamming):
 
-    # if (hamming):
+        num_blocks = 5
+        msg, errors, error_indices = extract_hamming_message(num_blocks, msg)
+        print(error_indices)
 
-    #     num_blocks = 3
-    #     msg, errors, error_indices = extract_hamming_message(num_blocks, msg)
+    print(msg)
+    print("010011100110000101101100011010010110111101101110")
 
-    # print(msg)
-    # print("010011100110000101101100011010010110111101101110")
+    if (is_string):
 
-    # if (is_string):
+        msg = binary_to_string(msg)
 
-    #     msg = binary_to_string(msg)
-
-    # print(msg)
+    print(msg)
 
 
-    # plot_temperature_over_time(temperatures,50,decode_temp_msg(temperatures, temps_per_bit))
+    #plot_temperature_over_time(temperatures,50,decode_temp_msg(temperatures, temps_per_bit))
 
 
 if __name__ == '__main__':

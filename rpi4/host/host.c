@@ -158,7 +158,8 @@ void log_temp(){
 
         // Convert string to integer (temperature is usually in millidegrees Celsius)
         int temp = atoi(buf) / 1000;
-        
+
+        printf("%d\n", temp);
 #if VERBOSE
         printf("CPU Temperature: %d°C\n", temp);
 #endif
@@ -260,7 +261,7 @@ int main(int argc, char *argv[])
 
 	if (shared_mem.buffer != NULL) {
 
-		char* msg = string_to_binary("Nalion");
+		char* msg = string_to_binary("hola");
 
 		if(hamming){
 			msg = hamming_encode(msg, HAMMING_BLOCK_SIZE);

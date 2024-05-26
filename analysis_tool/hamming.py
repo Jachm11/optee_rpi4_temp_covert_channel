@@ -1,5 +1,6 @@
 import math
-from typing import Optional
+from typing import Optional, Tuple
+
 
 class HammingDecode:
     def __init__(self) -> None:
@@ -37,14 +38,14 @@ def extended_hamming(data: str) -> HammingDecode:
     
     return hamming
 
-def correct_error(decode: HammingDecode) -> str:
+def correct_error(decode: HammingDecode) -> Tuple[str, int]:
     """Correct errors in a decoded Hamming message."""
     decode_message = decode.message
     error_index = map_index(decode.error)
 
     # If no error, return the original message
     if error_index == -1:
-        return decode_message
+        return (decode_message,0)
 
     # Correct the error at the error_index
     corrected_message = (
@@ -53,7 +54,7 @@ def correct_error(decode: HammingDecode) -> str:
         decode_message[error_index + 1:]
     )
 
-    return corrected_message
+    return (corrected_message,1)
 
 def map_index(index:int)->int:
 
