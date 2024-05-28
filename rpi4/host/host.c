@@ -164,19 +164,19 @@ void log_temp(){
         printf("CPU Temperature: %d°C\n", temp);
 #endif
 
-        // Open log file in append mode
-        log_fp = fopen(log_file, "a");
-        if (log_fp == NULL) {
-            printf("Error opening log file\n");
-            exit(1);
-        }
+        // // Open log file in append mode
+        // log_fp = fopen(log_file, "a");
+        // if (log_fp == NULL) {
+        //     printf("Error opening log file\n");
+        //     exit(1);
+        // }
 
-        // Write temperature to log file
-        fprintf(log_fp, "%d\n", temp);
-        fclose(log_fp);
+        // // Write temperature to log file
+        // fprintf(log_fp, "%d\n", temp);
+        // fclose(log_fp);
 
         // Wait for one milisecond
-        usleep(10000);
+        usleep(100000);
     }
 
 }

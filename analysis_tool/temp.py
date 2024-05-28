@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 from typing import List, Tuple
 import subprocess
 import math
+import os
+import csv
 from hamming import *
 from utils import *
 
@@ -150,14 +152,14 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
     print(len(temperatures))
 
     # Decode temps
-    temps_per_bit = interval // 10
+    temps_per_bit = interval // 100
     raw_msg = decode_temp_msg(temperatures, temps_per_bit,interval/10000)
 
     # print("Hamming truth: ",hamming_truth)
     # print("Raw message:   ",raw_msg)
 
-    print_with_pipe(hamming_truth)
-    print_with_pipe(raw_msg)
+    print_with_pipe(hamming_truth,16)
+    print_with_pipe(raw_msg,16)
     
 
     # Calculate bit rate
@@ -191,8 +193,8 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
     # print("Truth:   ",truth)
     # print("Message: ",msg)
 
-    print_with_pipe(truth)
-    print_with_pipe(msg)
+    print_with_pipe(truth,8)
+    print_with_pipe(msg,8)
 
     # Throughput
     throughput = (len(msg) - meaningful_errors)/total_transfer_time
@@ -210,9 +212,21 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
     print(f"Transfer time: {total_transfer_time:.4f} s")
     print(f"Accuracy: {accuracy:.4f}%")
     
-    msg = binary_to_string(msg)
+    readable = binary_to_string(msg)
 
-    print(msg)
+    print(readable)
+
+    # Save metrics to CSV
+    csv_file = 'metrics.csv'
+    file_exists = os.path.isfile(csv_file)
+    
+    with open(csv_file, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        if not file_exists:
+            # Write header if the file doesn't exist
+            writer.writerow(['Interval','Hamming','Sample rate','Bit Rate', 'Total Errors', 'Error Rate', 'Corrected Errors', 'Correction Rate', 'Meaningful Errors', 'Throughput', 'Transfer Time', 'Accuracy','Raw message','Message','String'])
+        # Write the metrics
+        writer.writerow([interval,hamming,100,bit_rate, total_errors, error_rate, corrected_errors if hamming else 'N/A', correction_rate if hamming else 'N/A', meaningful_errors, throughput, total_transfer_time, accuracy, raw_msg, msg, readable])
 
     #plot_temperature_over_time(temperatures,temps_per_bit,"sas")
 
@@ -225,45 +239,17 @@ def main():
     # Config
     hamming = True
     interval = 5000
-    is_string = True
 
-    run_single_test(interval,hamming,16)
+    while interval >= 100:
+        run_single_test(interval, hamming, 16)
+        interval -= 200
 
-    #a = extended_hamming("1000000111000000")
+    interval = 5000
+    hamming = False
 
-    #print(a.message)
-
-    # # Execution
-    # temps = run_rpi4(interval,hamming)
-
-    # # Parse
-    # string_temps = temps.split('\n')
-    # temperatures = [int(temp) for temp in string_temps if temp.isdigit()]
-
-    # # Decode
-    # temps_per_bit = interval//100
-    # msg = decode_temp_msg(temperatures, temps_per_bit)
-    # print_with_pipe(msg)
-
-    # org = "00001100111100111110100011011011111000011101001000110101111101101001011000000000"
-    # print_with_pipe(org)
-    # compare_strings(msg,org)
-
-    # if (hamming):
-
-    #     num_blocks = 5
-    #     msg, errors, error_indices = extract_hamming_message(num_blocks, msg)
-    #     print(error_indices)
-
-    # print(msg)
-    # print("010011100110000101101100011010010110111101101110")
-
-    # if (is_string):
-
-    #     msg = binary_to_string(msg)
-
-    # print(msg)
-
+    while interval >= 100:
+        run_single_test(interval, hamming, 16)
+        interval -= 200
 
 
 if __name__ == '__main__':

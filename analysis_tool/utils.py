@@ -41,7 +41,7 @@ def binary_to_string(binary: str) -> str:
 
     return result
 
-def print_with_pipe(text):
-    for i in range(0, len(text), 16):
-        print(text[i:i+16], end='|')
+def print_with_pipe(text,gap):
+    for i in range(0, len(text), gap):
+        print(text[i:i+gap], end='|')
     print()
