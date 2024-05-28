@@ -36,7 +36,7 @@ def decode_temp_msg(temps: List[float], temps_per_bit: int, tolerance:float) -> 
         else:
             value = '0'
 
-        print(i/temps_per_bit,prev_avg,avg_temp)
+        #print(i/temps_per_bit,prev_avg,avg_temp)
         result += value
 
 
@@ -65,8 +65,6 @@ def extract_hamming_message(msg: str, block_size: int) -> Tuple[str, List[str], 
     faulty_block_indices = []
     corrected_msg = ""
     corrected_errors = 0
-
-    print(blocks)
 
     for index, block in enumerate(blocks):
         hamming_decode = extended_hamming(block)
@@ -149,8 +147,6 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
     # with open("temp_log", "r") as file:
     #     temperatures = [int(line.strip()) for line in file]
 
-    print(len(temperatures))
-
     # Decode temps
     temps_per_bit = interval // 100
     raw_msg = decode_temp_msg(temperatures, temps_per_bit,interval/10000)
@@ -221,12 +217,12 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
     file_exists = os.path.isfile(csv_file)
     
     with open(csv_file, mode='a', newline='') as file:
-        writer = csv.writer(file)
+        writer = csv.writer(file, quotechar='"', quoting=csv.QUOTE_MINIMAL,  escapechar='\\')
         if not file_exists:
             # Write header if the file doesn't exist
             writer.writerow(['Interval','Hamming','Sample rate','Bit Rate', 'Total Errors', 'Error Rate', 'Corrected Errors', 'Correction Rate', 'Meaningful Errors', 'Throughput', 'Transfer Time', 'Accuracy','Raw message','Message','String'])
         # Write the metrics
-        writer.writerow([interval,hamming,100,bit_rate, total_errors, error_rate, corrected_errors if hamming else 'N/A', correction_rate if hamming else 'N/A', meaningful_errors, throughput, total_transfer_time, accuracy, raw_msg, msg, readable])
+        writer.writerow([interval,hamming,100,bit_rate, total_errors, error_rate, corrected_errors if hamming else 'N/A', correction_rate if hamming else 'N/A', meaningful_errors, throughput, total_transfer_time, accuracy, raw_msg, msg, str(readable)])
 
     #plot_temperature_over_time(temperatures,temps_per_bit,"sas")
 
@@ -250,7 +246,6 @@ def main():
     while interval >= 100:
         run_single_test(interval, hamming, 16)
         interval -= 200
-
 
 if __name__ == '__main__':
     main()
