@@ -43,16 +43,23 @@ def correct_error(decode: HammingDecode) -> Tuple[str, int]:
     decode_message = decode.message
     error_index = map_index(decode.error)
 
-    # If no error, return the original message
-    if error_index == -1:
+    # No errors
+    if error_index == -2:
         return (decode_message,0)
 
+    # Error on partity bit no data comprimises
+    if error_index == -1:
+        return (decode_message,1)
+
     # Correct the error at the error_index
-    corrected_message = (
-        decode_message[:error_index] +
-        ('0' if decode_message[error_index] == '1' else '1') +
-        decode_message[error_index + 1:]
-    )
+    try:
+        corrected_message = (
+            decode_message[:error_index] +
+            ('0' if decode_message[error_index] == '1' else '1') +
+            decode_message[error_index + 1:]
+        )
+    except:
+        return (corrected_message,1)
 
     return (corrected_message,1)
 
@@ -60,7 +67,7 @@ def map_index(index:int)->int:
 
     match index:
         case 0:
-            return -1
+            return -2
         case 1:
             return -1
         case 2:

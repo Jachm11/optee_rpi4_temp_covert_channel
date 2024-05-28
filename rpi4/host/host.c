@@ -176,7 +176,7 @@ void log_temp(){
         fclose(log_fp);
 
         // Wait for one milisecond
-        usleep(100000);
+        usleep(10000);
     }
 
 }
