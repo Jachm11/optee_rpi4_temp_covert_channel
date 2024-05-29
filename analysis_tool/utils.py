@@ -14,8 +14,8 @@ def compare_strings(str1: str, str2: str) -> List[int]:
     min_len = min(len(str1), len(str2))  # Length of the shorter string
     differences = [i for i in range(min_len) if str1[i] != str2[i]]  # List of positions with differences
 
-    if len(str1) != len(str2):
-        differences.extend(range(min_len, max(len(str1), len(str2))))  # Note down the remaining positions
+    # if len(str1) != len(str2):
+    #     differences.extend(range(min_len, max(len(str1), len(str2))))  # Note down the remaining positions
 
     if differences:
         print(f"Differences found at positions: {differences}")

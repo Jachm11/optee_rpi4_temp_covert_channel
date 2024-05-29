@@ -98,10 +98,17 @@ void execute_workload(char *str, int bit_time) {
 			int ready = 0;
             printf("Executing workload for %d miliseconds...\n",bit_time);
 			while (!ready){
-            	run_workload(100000);
+            	run_workload(1000);
 				TEE_GetREETime(&current_time);
-				if (current_time.millis - start_time.millis >= (bit_time)){
-					ready = 1;
+				if (bit_time >= 1000){
+					if (current_time.seconds - start_time.seconds >= (bit_time/1000)){
+						ready = 1;
+					}
+				}
+				else{
+					if (current_time.millis - start_time.millis >= (bit_time)){
+						ready = 1;
+					}
 				}
 			}
         } else if (str[i] == '0') {

@@ -7,6 +7,9 @@ import csv
 from hamming import *
 from utils import *
 from PIL import Image
+import numpy as np
+
+global iter
 
 def decode_temp_msg(temps: List[float], temps_per_bit: int, tolerance:float) -> str:
     """
@@ -27,6 +30,8 @@ def decode_temp_msg(temps: List[float], temps_per_bit: int, tolerance:float) -> 
         group = temps[i:i + temps_per_bit]  # Get the current group of temperatures
         avg_temp = sum(group) / len(group)  # Calculate the average temperature of the current group
         value = ''
+
+        #print(f"Temps from {i} to {i + temps_per_bit}")
 
         if prev_avg is None:
             value = '0'
@@ -91,7 +96,7 @@ def plot_temperature_over_time(temperatures: List[float], interval: int, text: s
         interval (int): The interval at which to add vertical lines.
         text (str): The text to be displayed below the graph.
     """
-    
+
     x_values = range(1, len(temperatures) + 1)  # Create x-axis values
     plt.plot(x_values, temperatures, marker='o', linestyle='-')
 
@@ -102,6 +107,9 @@ def plot_temperature_over_time(temperatures: List[float], interval: int, text: s
     plt.title('Temperature over Time')
     plt.xlabel('Time')
     plt.ylabel('Temperature (°C)')
+
+    # Set y-axis ticks in increments of 0.1
+    plt.yticks([i/10 for i in range(int(min(temperatures)*10), int(max(temperatures)*10)+1)])
 
     # Add the text below the graph
     plt.text(0.5, -0.1, text, ha='center', fontsize=12, transform=plt.gca().transAxes)
@@ -148,11 +156,18 @@ def run_rpi4(milis:int, hamming:bool) -> str:
 
     return result.stdout
 
+def isfloat(num):
+    try:
+        float(num)
+        return True
+    except ValueError:
+        return False
 
 def run_single_test(interval: int, hamming: bool, hamming_block_size: int, sample_rate:int):
     hamming_truth = "011001101100001111100111110110111000000101000010"
-    #truth = "01101000011011110110110001100001"
-    truth = "0110100001101111"
+    truth = "01101000011011110110110001100001"
+    #truth = "0110100001101111"
+    global iter
 
     msg = ''
 
@@ -167,23 +182,15 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int, sampl
     total_transfer_time = 0
     accuracy = 0
 
-    # # Execution
-    # raw_temps = run_rpi4(interval, hamming)
+    # Execution
+    raw_temps = run_rpi4(interval, hamming)
 
-    # # Save for later use
-    # directory = 'analysis_tool/runs/1/'
-    # filename = f'{interval}_{hamming}.txt'
-    # file_path = os.path.join(directory, filename)
-    # os.makedirs(directory, exist_ok=True)
-    # with open(file_path, 'w') as file:
-    #     file.write(raw_temps)
+    # Parse and convert temperatures to integers
+    temperatures = [float(temp) for temp in raw_temps.split('\n') if isfloat(temp)]
 
-    # # Parse and convert temperatures to integers
-    # temperatures = [int(temp) for temp in raw_temps.split('\n') if temp.isdigit()]
-
-    # Read temperatures from file
-    with open("analysis_tool/runs/1/500_False.txt", "r") as file:
-        temperatures = [int(line.strip()) for line in file]
+    # # Read temperatures from file
+    # with open("analysis_tool/runs/1/500_False_75.0000.txt", "r") as file:
+    #     temperatures = [float(line.strip()) for line in file]
 
     # Decode temps
     temps_per_bit = interval // sample_rate
@@ -237,6 +244,14 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int, sampl
     throughput = (len(msg) - meaningful_errors)/total_transfer_time
     accuracy = (len(msg[:len(truth)]) - meaningful_errors)/len(truth) * 100
 
+    # Save for later use
+    directory = f'analysis_tool/runs/{iter}/'
+    filename = f'{interval}_{hamming}_{accuracy:.4f}.txt'
+    file_path = os.path.join(directory, filename)
+    os.makedirs(directory, exist_ok=True)
+    with open(file_path, 'w') as file:
+        file.write(raw_temps)
+
     # Print stats
     print(f"Bit Rate: {bit_rate:.4f} bit/s")
     print(f"Total Errors: {total_errors}")
@@ -254,7 +269,7 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int, sampl
     print(readable)
 
     # Save metrics to CSV
-    csv_file = 'metrics.csv'
+    csv_file = f'metrics_{iter}.csv'
     file_exists = os.path.isfile(csv_file)
     
     with open(csv_file, mode='a', newline='') as file:
@@ -263,30 +278,42 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int, sampl
             # Write header if the file doesn't exist
             writer.writerow(['Interval','Hamming','Sample rate','Bit Rate', 'Total Errors', 'Error Rate', 'Corrected Errors', 'Correction Rate', 'Meaningful Errors', 'Throughput', 'Transfer Time', 'Accuracy','Raw message','Message','String'])
         # Write the metrics
-        writer.writerow([interval,hamming,100,bit_rate, total_errors, error_rate, corrected_errors if hamming else 'N/A', correction_rate if hamming else 'N/A', meaningful_errors, throughput, total_transfer_time, accuracy, raw_msg, msg, str(readable)])
+        writer.writerow([interval,hamming,sample_rate,bit_rate, total_errors, error_rate, corrected_errors if hamming else 'N/A', correction_rate if hamming else 'N/A', meaningful_errors, throughput, total_transfer_time, accuracy, raw_msg, msg, str(readable)])
 
-    plot_temperature_over_time(temperatures,temps_per_bit,truth + '\n' + msg)
+    #plot_temperature_over_time(temperatures,temps_per_bit,truth + '\n' + msg)
 
     return
 
 def main():
 
     # Config
-    hamming = False
-    interval = 500
-    sample_rate = 10
-    run_single_test(interval, hamming, 16, sample_rate)
+    for i in range (0,3):
+        global iter
+        iter = i
+        hamming = True
+        interval = 5000
+        sample_rate = 10
+        #run_single_test(interval, hamming, 16, sample_rate)
 
-    # while interval >= 100:
-    #     run_single_test(interval, hamming, 16)
-    #     interval -= 200
+        while interval >= 10:
+            run_single_test(interval, hamming, 16, sample_rate)
 
-    # interval = 5000
-    # hamming = False
+            if interval <= 500:
+                interval -= 10
+            else:
+                interval -= 100
 
-    # while interval >= 100:
-    #     run_single_test(interval, hamming, 16)
-    #     interval -= 200
+
+        interval = 5000
+        hamming = False
+
+        while interval >= 10:
+            run_single_test(interval, hamming, 16, sample_rate)
+
+            if interval <= 500:
+                interval -= 10
+            else:
+                interval -= 100
 
 if __name__ == '__main__':
     main()

@@ -59,7 +59,7 @@ def correct_error(decode: HammingDecode) -> Tuple[str, int]:
             decode_message[error_index + 1:]
         )
     except:
-        return (corrected_message,1)
+        return (decode_message,1)
 
     return (corrected_message,1)
 
