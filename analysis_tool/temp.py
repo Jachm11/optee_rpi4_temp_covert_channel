@@ -6,6 +6,7 @@ import os
 import csv
 from hamming import *
 from utils import *
+from PIL import Image
 
 def decode_temp_msg(temps: List[float], temps_per_bit: int, tolerance:float) -> str:
     """
@@ -109,6 +110,33 @@ def plot_temperature_over_time(temperatures: List[float], interval: int, text: s
     plt.grid(True)
     plt.show()
 
+def binary_string_to_image(binary_string, width, height, output_path):
+    # Calculate the required length
+    required_length = width * height
+    
+    # Pad the binary string with '1's if its length does not match the required length
+    if len(binary_string) < required_length:
+        binary_string += '1' * (required_length - len(binary_string))
+    elif len(binary_string) > required_length:
+        raise ValueError("The length of the binary string exceeds the specified dimensions.")
+    
+    # Create a new image with the given width and height, mode '1' for 1-bit pixels
+    img = Image.new('1', (width, height))
+    
+    # Populate the image with pixels based on the binary string
+    pixels = img.load()
+    for y in range(height):
+        for x in range(width):
+            # Calculate the position in the binary string
+            index = y * width + x
+            # Set the pixel value (255 for white, 0 for black)
+            pixels[x, y] = 255 if binary_string[index] == '1' else 0
+    
+    # Save the image
+    img.save(output_path)
+    print(f"Image saved as {output_path}")
+    return img
+
 def run_rpi4(milis:int, hamming:bool) -> str:
 
     # Define the command you want to run
@@ -121,9 +149,11 @@ def run_rpi4(milis:int, hamming:bool) -> str:
     return result.stdout
 
 
-def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
+def run_single_test(interval: int, hamming: bool, hamming_block_size: int, sample_rate:int):
     hamming_truth = "011001101100001111100111110110111000000101000010"
-    truth = "01101000011011110110110001100001"
+    #truth = "01101000011011110110110001100001"
+    truth = "0110100001101111"
+
     msg = ''
 
     # Metrics
@@ -137,25 +167,42 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
     total_transfer_time = 0
     accuracy = 0
 
-    # Execution
-    raw_temps = run_rpi4(interval, hamming)
+    # # Execution
+    # raw_temps = run_rpi4(interval, hamming)
 
-    # Parse and convert temperatures to integers
-    temperatures = [int(temp) for temp in raw_temps.split('\n') if temp.isdigit()]
+    # # Save for later use
+    # directory = 'analysis_tool/runs/1/'
+    # filename = f'{interval}_{hamming}.txt'
+    # file_path = os.path.join(directory, filename)
+    # os.makedirs(directory, exist_ok=True)
+    # with open(file_path, 'w') as file:
+    #     file.write(raw_temps)
 
-    # # Read temperatures from file
-    # with open("temp_log", "r") as file:
-    #     temperatures = [int(line.strip()) for line in file]
+    # # Parse and convert temperatures to integers
+    # temperatures = [int(temp) for temp in raw_temps.split('\n') if temp.isdigit()]
+
+    # Read temperatures from file
+    with open("analysis_tool/runs/1/500_False.txt", "r") as file:
+        temperatures = [int(line.strip()) for line in file]
 
     # Decode temps
-    temps_per_bit = interval // 100
+    temps_per_bit = interval // sample_rate
     raw_msg = decode_temp_msg(temperatures, temps_per_bit,interval/10000)
+
+
+    # # For images
+    # stringed = ''.join(map(str,raw_msg))
+    # output_path = 'output_image.png'  # Specify the output path
+    # print(stringed)
+    # print(len(stringed))
+    # image = binary_string_to_image(stringed,64,64,output_path)
+    # image.show()  # This will display the image
 
     # print("Hamming truth: ",hamming_truth)
     # print("Raw message:   ",raw_msg)
 
-    print_with_pipe(hamming_truth,16)
-    print_with_pipe(raw_msg,16)
+    # print_with_pipe(hamming_truth,16)
+    # print_with_pipe(raw_msg,16)
     
 
     # Calculate bit rate
@@ -166,24 +213,18 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
         # Decoding
         msg, _, error_indices, corrected_errors = extract_hamming_message(raw_msg, hamming_block_size)
 
-        # Calculate total errors and corrected errors
+        # Calculate metrics
         total_errors = len(compare_strings(raw_msg,hamming_truth))
-
-        # Error rate and correction rate
         error_rate = total_errors / len(raw_msg)
         correction_rate = corrected_errors / len(raw_msg)
-
-        # Calculate meaningful errors
         meaningful_errors = len(compare_strings(msg[:len(truth)], truth))
     else:
         # No need to decode, directly compare
         msg = raw_msg
 
-        # Calculate meaningful errors
+        # Calculate metrics
         meaningful_errors = len(compare_strings(msg, truth))
         total_errors = meaningful_errors
-
-        # Error rate
         error_rate = total_errors / len(raw_msg)
 
     # print("Truth:   ",truth)
@@ -224,28 +265,28 @@ def run_single_test(interval: int, hamming: bool, hamming_block_size: int):
         # Write the metrics
         writer.writerow([interval,hamming,100,bit_rate, total_errors, error_rate, corrected_errors if hamming else 'N/A', correction_rate if hamming else 'N/A', meaningful_errors, throughput, total_transfer_time, accuracy, raw_msg, msg, str(readable)])
 
-    #plot_temperature_over_time(temperatures,temps_per_bit,"sas")
+    plot_temperature_over_time(temperatures,temps_per_bit,truth + '\n' + msg)
 
-    return 
-
-
+    return
 
 def main():
 
     # Config
-    hamming = True
-    interval = 5000
-
-    while interval >= 100:
-        run_single_test(interval, hamming, 16)
-        interval -= 200
-
-    interval = 5000
     hamming = False
+    interval = 500
+    sample_rate = 10
+    run_single_test(interval, hamming, 16, sample_rate)
 
-    while interval >= 100:
-        run_single_test(interval, hamming, 16)
-        interval -= 200
+    # while interval >= 100:
+    #     run_single_test(interval, hamming, 16)
+    #     interval -= 200
+
+    # interval = 5000
+    # hamming = False
+
+    # while interval >= 100:
+    #     run_single_test(interval, hamming, 16)
+    #     interval -= 200
 
 if __name__ == '__main__':
     main()

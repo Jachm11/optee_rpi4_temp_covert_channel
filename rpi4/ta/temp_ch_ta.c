@@ -100,7 +100,7 @@ void execute_workload(char *str, int bit_time) {
 			while (!ready){
             	run_workload(100000);
 				TEE_GetREETime(&current_time);
-				if (current_time.seconds - start_time.seconds >= (bit_time/1000)){
+				if (current_time.millis - start_time.millis >= (bit_time)){
 					ready = 1;
 				}
 			}
