@@ -45,3 +45,19 @@ def print_with_pipe(text,gap):
     for i in range(0, len(text), gap):
         print(text[i:i+gap], end='|')
     print()
+
+
+def replace_non_alnum_with_asterisk(s):
+    # Initialize an empty list to store the modified characters
+    result = []
+    # Iterate through each character in the string
+    for char in s:
+        # Check if the character is alphanumeric
+        if char.isalnum():
+            # If it is, add it to the result list
+            result.append(char)
+        else:
+            # If it is not, add an asterisk to the result list
+            result.append('*')
+    # Join the list back into a string and return it
+    return ''.join(result)

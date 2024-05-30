@@ -12,7 +12,6 @@
 
 #define VERBOSE 0
 #define FREQUENCY 1500000
-#define MAX_BUF 256
 #define HAMMING_BLOCK_SIZE 16
 
 int is_power_2(int x) {
@@ -119,7 +118,7 @@ char* hamming_encode(char* bits, int block_size){
 void set_cpu_frequency(unsigned int freq_khz) {
     FILE *setspeed_fp;
 
-    // Open the files for writing
+    // Open the freq file for writting (specific to Linux systems)
     setspeed_fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", "w");
 
     if (setspeed_fp == NULL) {
@@ -129,60 +128,10 @@ void set_cpu_frequency(unsigned int freq_khz) {
 
     // Set the frequency
     fprintf(setspeed_fp, "%u", freq_khz);
-
-    // Close the files
     fclose(setspeed_fp);
 }
 
-
-void log_temp(){
-
-    FILE *fp, *log_fp; // File pointers for temperature file and log file
-    char buf[MAX_BUF];
-
-    // Path to the file containing CPU temperature (specific to Linux systems)
-    const char *temp_file = "/sys/class/thermal/thermal_zone0/temp";
-    const char *log_file = "temp_log"; // Log file path
-
-    while (1) {
-        // Open temperature file
-        fp = fopen(temp_file, "r");
-        if (fp == NULL) {
-            printf("Error opening temperature file\n");
-            exit(1);
-        }
-
-        // Read temperature value
-        fgets(buf, MAX_BUF, fp);
-        fclose(fp);
-
-        // Convert string to integer (temperature is usually in millidegrees Celsius)
-        float temp = atof(buf) / 1000;
-
-        printf("%f\n", temp);
-#if VERBOSE
-        printf("CPU Temperature: %d°C\n", temp);
-#endif
-
-        // // Open log file in append mode
-        // log_fp = fopen(log_file, "a");
-        // if (log_fp == NULL) {
-        //     printf("Error opening log file\n");
-        //     exit(1);
-        // }
-
-        // // Write temperature to log file
-        // fprintf(log_fp, "%d\n", temp);
-        // fclose(log_fp);
-
-        // Wait for one milisecond
-        usleep(10000);
-    }
-
-}
-
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
 
 	//     __________________________
 	//____/ Arguements setup
@@ -283,15 +232,6 @@ int main(int argc, char *argv[])
 	//     _______________________
 	//____/ TA execution calls
 
-	/* Call the temperature monitoring function*/
-	pid_t pid = fork();
-
-	if (pid == 0) {
-        // Child process
-        log_temp();
-		return 0;
-    }
-
 	/* Call the send_with_temp function on the TA*/
 	res = TEEC_InvokeCommand(&sess, CMD_SEND_WITH_TEMP, &op, &err_origin);
 	if (res != TEEC_SUCCESS)
@@ -304,9 +244,6 @@ int main(int argc, char *argv[])
 	 * We're done with the TA, close the session and destroy the context. 
 	 * The TA will print "Goodbye!" in the log when the session is closed.
 	 */
-
-	/* Stop recording temps */
-	kill(pid, SIGINT);
 
 	/* Always free memory */
     TEEC_ReleaseSharedMemory(&shared_mem);

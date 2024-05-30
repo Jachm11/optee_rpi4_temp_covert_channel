@@ -8,6 +8,7 @@ BUILD_DIR = build/rpi4
 
 # Set target names
 HOST_TARGET = $(BUILD_DIR)/host
+LOGGER_TARGET = $(BUILD_DIR)/logger
 TA_TARGET   = $(BUILD_DIR)/ta
 
 # Compiler flags
@@ -24,9 +25,12 @@ BINARY=8aaaf200-2450-11e4-abe2-0002a5d5c51e
 # Targets
 .PHONY: all port clean
 
-all: $(HOST_TARGET) $(TA_TARGET)
+all: $(HOST_TARGET) $(TA_TARGET) $(LOGGER_TARGET)
 
 $(HOST_TARGET): host/host.c | $(BUILD_DIR)
+	$(CC)gcc $^ $(CXXFLAGS) $(LDFLAGS) -o $@
+
+$(LOGGER_TARGET): host/temp_logger.c | $(BUILD_DIR)
 	$(CC)gcc $^ $(CXXFLAGS) $(LDFLAGS) -o $@
 
 $(TA_TARGET): export CROSS_COMPILE64=$(CC)
