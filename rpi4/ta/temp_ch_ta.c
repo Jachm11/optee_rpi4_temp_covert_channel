@@ -67,27 +67,41 @@ void TA_CloseSessionEntryPoint(void __maybe_unused *sess_ctx) {
 //      __________________________
 //____/ Utility functions
 
-// Function to execute the workload
+/**
+ * Executes a workload that involves matrix initialization and a recursive computation.
+ *
+ * @param n An integer input for the recursive computation.
+ * @return A long long integer result of the recursive computation.
+ */
 long long run_workload(int n){
 
 	int A[SIZE][SIZE], B[SIZE][SIZE];
 	// Initialize matrices A and B
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
-            A[i][j] = 69;  // Random numbers between 0 and 99
-            B[i][j] = 99;  // Random numbers between 0 and 99
+            A[i][j] = 69;
+            B[i][j] = 99;
         }
     }
 
-	int c = A[3][4] + B[1][0];
+	// Calculate a constant value based on elements from A and B
+    int c = A[3][4] + B[1][0];
 
+    // Base cases for the recursion
     if (n == 0 || n == 1)
         return 1;
     else
+        // Recursive computation with the additional constant c
         return n * run_workload(n - 1) + c;
 }
 
-// Function to parse the string and execute workload accordingly
+/**
+ * Parses the input string and executes the workload accordingly.
+ *
+ * @param str The input string consisting of '1's and '0's.
+ *            '1' indicates executing the workload, and '0' indicates sleeping.
+ * @param bit_time The time in milliseconds to run the workload or to sleep.
+ */
 void execute_workload(char *str, int bit_time) {
     int len = strlen(str);
     for (int i = 0; i < len; i++) {
@@ -123,6 +137,13 @@ void execute_workload(char *str, int bit_time) {
 //      __________________________
 //____/ Specific cmd functions
 
+/**
+ * Executes a covert channel with temperature based on parameters received
+ *
+ * @param param_types The types of parameters passed to the function.
+ * @param params The array of parameters.
+ * @return A TEE_Result indicating success or failure.
+ */
 static TEE_Result send_with_temp(uint32_t param_types, TEE_Param params[4]) {
 
 	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_VALUE_INPUT,

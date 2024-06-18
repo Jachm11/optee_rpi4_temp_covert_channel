@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Check if exactly four parameters are provided
+if [ $# -ne 4 ]; then
+    echo "Usage: $0 <milisecs> <hamming> <measurements> <sampling>"
+    exit 1
+fi
+
+milisecs="$1"
+hamming="$2"
+measurements="$3"
+sampling="$4"
+
+#./host "$milisecs" "$hamming" & 
+./logger "$measurements" "$sampling"
